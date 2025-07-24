@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/Users/lucas/Desktop/Startup Projects/Football Analytics Program/backend/app.py", line 9, in <module>
+    import pandas as pd
+  File "/Users/lucas/Desktop/Startup Projects/Football Analytics Program/backend/venv/lib/python3.12/site-packages/pandas/__init__.py", line 46, in <module>
+    from pandas.core.api import (
+  File "/Users/lucas/Desktop/Startup Projects/Football Analytics Program/backend/venv/lib/python3.12/site-packages/pandas/core/api.py", line 1, in <module>
+    from pandas._libs import (
+  File "/Users/lucas/Desktop/Startup Projects/Football Analytics Program/backend/venv/lib/python3.12/site-packages/pandas/_libs/__init__.py", line 18, in <module>
+    from pandas._libs.interval import Interval
+  File "interval.pyx", line 1, in init pandas._libs.interval
+ValueError: numpy.dtype size changed, may indicate binary incompatibility. Expected 96 from C header, got 88 from PyObject

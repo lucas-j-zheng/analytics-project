@@ -1,0 +1,11 @@
+Play ID,Down,Distance,Yard Line,Formation,Play Type,Play,Result of Play
+1,1,10,25,I Formation,Run,Inside Zone,3 yard gain
+2,2,7,28,Shotgun,Pass,Slant,12 yard gain
+3,1,10,40,I Formation,Run,Outside Zone,2 yard gain
+4,2,8,42,Shotgun,Pass,Out Route,15 yard gain - Touchdown
+5,1,10,20,Gun Trips,Pass,Fade,Incomplete
+6,2,10,20,I Formation,Run,Power,6 yard gain
+7,3,4,26,Shotgun,Pass,Quick Slant,8 yard gain
+8,1,10,34,Singleback,Run,Sweep,1 yard gain
+9,2,9,35,Shotgun,Pass,Comeback,11 yard gain
+10,1,10,46,I Formation,Run,Dive,4 yard gain
