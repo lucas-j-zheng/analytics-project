@@ -5,42 +5,26 @@ Starting Flask server on http://127.0.0.1:5001
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on http://127.0.0.1:5001
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [14/Jul/2025 21:17:11] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:18:01] "POST /api/auth/team/login HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:18:20] "GET /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:18:31] "GET /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:54] "OPTIONS /api/auth/verify HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:54] "OPTIONS /api/auth/verify HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:54] "[31m[1mGET /api/auth/verify HTTP/1.1[0m" 422 -
-127.0.0.1 - - [14/Jul/2025 21:22:54] "[31m[1mGET /api/auth/verify HTTP/1.1[0m" 422 -
-127.0.0.1 - - [14/Jul/2025 21:22:54] "OPTIONS /api/auth/team/login HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "POST /api/auth/team/login HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "OPTIONS /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "OPTIONS /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "OPTIONS /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "OPTIONS /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "GET /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "GET /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "GET /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:22:55] "GET /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:23:50] "OPTIONS /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:23:50] "OPTIONS /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:23:50] "GET /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:23:50] "GET /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:23:52] "OPTIONS /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [14/Jul/2025 21:23:52] "GET /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 20:19:56] "GET /api/health HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:49] "OPTIONS /api/auth/verify HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:49] "OPTIONS /api/auth/verify HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:49] "[31m[1mGET /api/auth/verify HTTP/1.1[0m" 401 -
-127.0.0.1 - - [23/Jul/2025 21:55:49] "[31m[1mGET /api/auth/verify HTTP/1.1[0m" 401 -
-127.0.0.1 - - [23/Jul/2025 21:55:51] "OPTIONS /api/auth/team/login HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "POST /api/auth/team/login HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "OPTIONS /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "OPTIONS /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "OPTIONS /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "OPTIONS /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "GET /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "GET /api/teams/2/visualizations HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "GET /api/games HTTP/1.1" 200 -
-127.0.0.1 - - [23/Jul/2025 21:55:52] "GET /api/teams/2/visualizations HTTP/1.1" 200 -
+127.0.0.1 - - [23/Jul/2025 22:25:24] "GET /api/ai/status HTTP/1.1" 200 -
+127.0.0.1 - - [24/Jul/2025 19:03:27] "GET /api/ai/status HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:21] "OPTIONS /api/auth/verify HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:21] "OPTIONS /api/auth/verify HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:21] "[31m[1mGET /api/auth/verify HTTP/1.1[0m" 401 -
+127.0.0.1 - - [26/Jul/2025 19:16:21] "[31m[1mGET /api/auth/verify HTTP/1.1[0m" 401 -
+127.0.0.1 - - [26/Jul/2025 19:16:24] "OPTIONS /api/auth/team/login HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:24] "POST /api/auth/team/login HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:25] "OPTIONS /api/games HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:25] "OPTIONS /api/teams/2/visualizations HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:25] "OPTIONS /api/games HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:25] "OPTIONS /api/teams/2/visualizations HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:25] "GET /api/games HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:25] "GET /api/games HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:25] "GET /api/teams/2/visualizations HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:25] "GET /api/teams/2/visualizations HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:35] "OPTIONS /api/ai/query HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:16:35] "POST /api/ai/query HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:33:06] "[33mGET /api/collaboration/sessions HTTP/1.1[0m" 404 -
+127.0.0.1 - - [26/Jul/2025 19:33:53] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [26/Jul/2025 19:34:24] "GET /api/health HTTP/1.1" 200 -
+/Users/lucas/miniforge3/lib/python3.12/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

@@ -1,16 +1,20 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from flask_bcrypt import Bcrypt
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
-from datetime import timedelta
+from flask_socketio import SocketIO
+from datetime import timedelta, datetime
 import os
 import csv
 import io
 import re
 from dotenv import load_dotenv
 from jwt_helper import get_current_user
+from ai_local import local_ai
+from collaboration import CollaborationService
+from reporting import init_reporting, report_generator
 
 load_dotenv()
 
@@ -28,7 +32,15 @@ db = SQLAlchemy(app)
 ma = Marshmallow(app)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
-CORS(app)
+CORS(app, origins=["http://localhost:3001", "http://localhost:3000"])
+socketio = SocketIO(app, cors_allowed_origins=["http://localhost:3001", "http://localhost:3000"])
+
+# Initialize collaboration service
+collaboration_service = CollaborationService(socketio, db)
+collaboration_service.init_events()
+
+# Initialize reporting service
+init_reporting(db)
 
 # Models
 class Team(db.Model):
@@ -1073,8 +1085,27 @@ def process_ai_query(query: str, games: list, team_id: int) -> str:
         else:
             return "Not enough data to identify weaknesses."
     
-    # Default response for unrecognized queries with advanced suggestions
+    # Default response - try local AI if available, fallback to predefined responses
     else:
+        # Try local AI first
+        if local_ai.is_available():
+            all_plays = db.session.query(PlayData).join(Game).filter(Game.team_id == team_id).all()
+            plays_data = [
+                {
+                    'yards_gained': play.yards_gained,
+                    'formation': play.formation,
+                    'play_type': play.play_type,
+                    'down': play.down,
+                    'distance': play.distance,
+                    'points_scored': play.points_scored
+                }
+                for play in all_plays
+            ]
+            
+            ai_response = local_ai.analyze_football_data(query, plays_data)
+            return ai_response
+        
+        # Fallback to predefined responses
         advanced_queries = [
             "What were the total yards against [Opponent]?",
             "How many plays did we run in week [X]?",
@@ -1088,14 +1119,291 @@ def process_ai_query(query: str, games: list, team_id: int) -> str:
             "Compare our games"
         ]
         
-        return f"I understand natural language! Here are some things you can ask me:\\n\\n" + "\\n".join(f"• {q}" for q in advanced_queries)
+        return f"I understand natural language! Here are some things you can ask me:\\n\\n" + "\\n".join(f"• {q}" for q in advanced_queries) + "\\n\\n💡 Tip: Install Ollama for enhanced AI responses!"
 
 # Health check
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'}), 200
 
+# AI status check
+@app.route('/api/ai/status', methods=['GET'])
+def ai_status():
+    ollama_available = local_ai.is_available()
+    available_models = local_ai.get_available_models() if ollama_available else []
+    
+    return jsonify({
+        'ollama_available': ollama_available,
+        'available_models': available_models,
+        'current_model': local_ai.model if ollama_available else None,
+        'recommendation': 'Install Ollama for enhanced AI responses' if not ollama_available else 'Local AI ready!'
+    }), 200
+
+# Real-time collaboration API endpoints
+@app.route('/api/collaboration/sessions', methods=['GET'])
+@jwt_required()
+def get_active_sessions():
+    return jsonify(collaboration_service.get_active_sessions()), 200
+
+@app.route('/api/collaboration/notify', methods=['POST'])
+@jwt_required()
+def send_notification():
+    try:
+        current_user = get_current_user()
+        data = request.get_json()
+        
+        target_user_id = data.get('target_user_id')
+        notification_type = data.get('type', 'general')
+        message = data.get('message', '')
+        
+        if not target_user_id or not message:
+            return jsonify({'message': 'Missing required fields'}), 400
+        
+        collaboration_service.send_notification(target_user_id, {
+            'type': notification_type,
+            'message': message,
+            'from_user': {
+                'id': current_user['id'],
+                'type': current_user['type']
+            },
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+        return jsonify({'message': 'Notification sent successfully'}), 200
+        
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+# Advanced Reporting API endpoints
+@app.route('/api/reports/team/<int:team_id>', methods=['GET'])
+@jwt_required()
+def generate_team_report(team_id):
+    try:
+        current_user = get_current_user()
+        
+        # Check permissions
+        if current_user['type'] == 'team' and current_user['id'] != team_id:
+            return jsonify({'message': 'Access denied'}), 403
+        
+        # Get query parameters
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        format_type = request.args.get('format', 'pdf')  # pdf or excel
+        
+        if format_type not in ['pdf', 'excel']:
+            return jsonify({'message': 'Invalid format. Use pdf or excel'}), 400
+        
+        # Generate report
+        report_buffer = report_generator.generate_team_performance_report(
+            team_id, start_date, end_date, format_type
+        )
+        
+        # Prepare response
+        team = Team.query.get(team_id)
+        filename = f"{team.team_name}_performance_report_{datetime.now().strftime('%Y%m%d')}"
+        
+        if format_type == 'pdf':
+            mimetype = 'application/pdf'
+            filename += '.pdf'
+        else:
+            mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            filename += '.xlsx'
+        
+        return send_file(
+            io.BytesIO(report_buffer.getvalue()),
+            mimetype=mimetype,
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@app.route('/api/reports/consultant/<int:consultant_id>', methods=['POST'])
+@jwt_required()
+def generate_consultant_report(consultant_id):
+    try:
+        current_user = get_current_user()
+        
+        # Only consultants can generate their own reports
+        if current_user['type'] != 'consultant' or current_user['id'] != consultant_id:
+            return jsonify({'message': 'Access denied'}), 403
+        
+        data = request.get_json()
+        team_ids = data.get('team_ids', [])
+        format_type = data.get('format', 'pdf')
+        
+        if not team_ids:
+            return jsonify({'message': 'Team IDs required'}), 400
+        
+        if format_type not in ['pdf', 'excel']:
+            return jsonify({'message': 'Invalid format. Use pdf or excel'}), 400
+        
+        # Generate report
+        report_buffer = report_generator.generate_consultant_report(
+            consultant_id, team_ids, format_type
+        )
+        
+        # Prepare response
+        consultant = Consultant.query.get(consultant_id)
+        filename = f"{consultant.name}_consultant_report_{datetime.now().strftime('%Y%m%d')}"
+        
+        if format_type == 'pdf':
+            mimetype = 'application/pdf'
+            filename += '.pdf'
+        else:
+            mimetype = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            filename += '.xlsx'
+        
+        return send_file(
+            io.BytesIO(report_buffer.getvalue()),
+            mimetype=mimetype,
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@app.route('/api/exports/game-data/<int:game_id>', methods=['GET'])
+@jwt_required()
+def export_game_data(game_id):
+    try:
+        current_user = get_current_user()
+        
+        # Get game and verify permissions
+        game = Game.query.get(game_id)
+        if not game:
+            return jsonify({'message': 'Game not found'}), 404
+        
+        if current_user['type'] == 'team' and current_user['id'] != game.team_id:
+            return jsonify({'message': 'Access denied'}), 403
+        
+        format_type = request.args.get('format', 'csv')  # csv, json, excel
+        
+        if format_type == 'csv':
+            return export_game_csv(game)
+        elif format_type == 'json':
+            return export_game_json(game)
+        elif format_type == 'excel':
+            return export_game_excel(game)
+        else:
+            return jsonify({'message': 'Invalid format. Use csv, json, or excel'}), 400
+            
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+def export_game_csv(game):
+    """Export game data as CSV"""
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Headers
+    writer.writerow([
+        'Play ID', 'Down', 'Distance', 'Yard Line', 'Formation', 'Play Type',
+        'Play Name', 'Result of Play', 'Yards Gained', 'Points Scored'
+    ])
+    
+    # Data
+    for play in game.play_data:
+        writer.writerow([
+            play.play_id, play.down, play.distance, play.yard_line,
+            play.formation, play.play_type, play.play_name,
+            play.result_of_play, play.yards_gained, play.points_scored
+        ])
+    
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f"game_{game.week}_{game.opponent.replace(' ', '_')}_data.csv"
+    )
+
+def export_game_json(game):
+    """Export game data as JSON"""
+    game_data = {
+        'game_info': {
+            'week': game.week,
+            'opponent': game.opponent,
+            'location': game.location,
+            'analytics_focus_notes': game.analytics_focus_notes,
+            'submission_timestamp': game.submission_timestamp.isoformat() if game.submission_timestamp else None
+        },
+        'plays': []
+    }
+    
+    for play in game.play_data:
+        game_data['plays'].append({
+            'play_id': play.play_id,
+            'down': play.down,
+            'distance': play.distance,
+            'yard_line': play.yard_line,
+            'formation': play.formation,
+            'play_type': play.play_type,
+            'play_name': play.play_name,
+            'result_of_play': play.result_of_play,
+            'yards_gained': play.yards_gained,
+            'points_scored': play.points_scored
+        })
+    
+    return send_file(
+        io.BytesIO(json.dumps(game_data, indent=2).encode('utf-8')),
+        mimetype='application/json',
+        as_attachment=True,
+        download_name=f"game_{game.week}_{game.opponent.replace(' ', '_')}_data.json"
+    )
+
+def export_game_excel(game):
+    """Export game data as Excel"""
+    buffer = io.BytesIO()
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = f"Week {game.week} vs {game.opponent}"
+    
+    # Game info
+    sheet['A1'] = f"Week {game.week} vs {game.opponent} ({game.location})"
+    sheet['A1'].font = openpyxl.styles.Font(size=16, bold=True)
+    sheet.merge_cells('A1:J1')
+    
+    # Headers
+    headers = [
+        'Play ID', 'Down', 'Distance', 'Yard Line', 'Formation', 'Play Type',
+        'Play Name', 'Result of Play', 'Yards Gained', 'Points Scored'
+    ]
+    
+    for col, header in enumerate(headers, 1):
+        cell = sheet.cell(row=3, column=col, value=header)
+        cell.font = openpyxl.styles.Font(bold=True)
+        cell.fill = openpyxl.styles.PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        cell.font = openpyxl.styles.Font(bold=True, color="FFFFFF")
+    
+    # Data
+    for row, play in enumerate(game.play_data, 4):
+        data = [
+            play.play_id, play.down, play.distance, play.yard_line,
+            play.formation, play.play_type, play.play_name,
+            play.result_of_play, play.yards_gained, play.points_scored
+        ]
+        
+        for col, value in enumerate(data, 1):
+            sheet.cell(row=row, column=col, value=value)
+    
+    # Auto-adjust column widths
+    for col in range(1, len(headers) + 1):
+        sheet.column_dimensions[chr(64 + col)].width = 15
+    
+    workbook.save(buffer)
+    buffer.seek(0)
+    
+    return send_file(
+        buffer,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=f"game_{game.week}_{game.opponent.replace(' ', '_')}_data.xlsx"
+    )
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True, host='0.0.0.0', port=5001)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5001, allow_unsafe_werkzeug=True)

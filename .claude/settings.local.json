@@ -9,7 +9,8 @@
       "Bash(pip install:*)",
       "Bash(python:*)",
       "Bash(rm:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(pkill:*)"
     ],
     "deny": []
   }

@@ -1,0 +1,41 @@
+Play ID,Down,Distance,Yard Line,Formation,Play Type,Play Name,Result of Play,Yards Gained,Points Scored
+0,1,10,OWN 25,I-Form,Run,Inside Zone,Gain,4,0
+1,2,6,OWN 29,Shotgun,Pass,Slant,Complete,8,0
+2,1,10,OWN 37,Singleback,Pass,Play Action Post,Complete,25,0
+3,1,10,OPP 38,Shotgun,Pass,RB Screen,Complete,9,0
+4,2,1,OPP 29,Goal Line,Run,Power,No Gain,0,0
+5,3,1,OPP 29,I-Form,Run,Dive,Gain,3,0
+6,1,10,OPP 26,Shotgun,Pass,Fade,Incomplete,0,0
+7,2,10,OPP 26,Pistol,Run,Draw,Gain,11,0
+8,1,Goal,OPP 15,Shotgun,Run,Sweep,Penalty (Holding),-10,0
+9,1,Goal,OPP 25,Shotgun,Pass,Corner Route,Touchdown,25,6
+10,N/A,N/A,OPP 15,Special Teams,Extra Point,PAT,Good,0,1
+11,N/A,N/A,OWN 35,Special Teams,Kickoff,Kickoff,Touchback,0,0
+12,1,10,OWN 25,I-Form,Run,Dive,Gain,2,0
+13,2,8,OWN 27,Shotgun,Pass,Curl,Incomplete,0,0
+14,3,8,OWN 27,Shotgun,Pass,Screen,Sack,-7,0
+15,4,15,OWN 20,Punt,Punt,Punt,Punt (Fair Catch),0,0
+16,1,10,OWN 30,Singleback,Pass,Out,Complete,6,0
+17,2,4,OWN 36,Pistol,Run,Counter,Gain,15,0
+18,1,10,OPP 49,Shotgun,Pass,Go Route,Incomplete,0,0
+19,2,10,OPP 49,Shotgun,Run,Draw,Gain,5,0
+20,3,5,OPP 44,Shotgun,Pass,Dig,Complete,12,0
+21,1,10,OPP 32,I-Form,Run,Sweep,Gain,3,0
+22,2,7,OPP 29,Singleback,Pass,Flat,Penalty (False Start),-5,0
+23,2,12,OPP 34,Shotgun,Pass,Comeback,Complete,16,0
+24,1,10,OPP 18,I-Form,Run,Power,Gain,4,0
+25,2,6,OPP 14,Shotgun,Pass,Slant,Incomplete,0,0
+26,3,6,OPP 14,Shotgun,Pass,Curl,Complete,5,0
+27,4,1,OPP 9,Special Teams,Field Goal,FG Attempt,Good,0,3
+28,N/A,N/A,OWN 35,Special Teams,Kickoff,Kickoff,Touchback,0,0
+29,1,10,OWN 25,Singleback,Run,Inside Zone,Gain,9,0
+30,2,1,OWN 34,I-Form,Run,Dive,Gain,3,0
+31,1,10,OWN 37,Shotgun,Pass,Post,Complete,18,0
+32,1,10,OPP 45,Shotgun,Pass,Out,Interception,0,0
+33,1,10,OPP 40,Pistol,Run,Counter,Tackle for Loss,-3,0
+34,2,13,OPP 43,Shotgun,Pass,Screen,Complete,11,0
+35,3,2,OPP 32,I-Form,Run,Power,Gain,2,0
+36,1,10,OPP 30,Shotgun,Pass,Seam,Complete,21,0
+37,1,Goal,OPP 9,Shotgun,Pass,Fade,Incomplete,0,0
+38,2,Goal,OPP 9,Shotgun,Run,Draw,Gain,8,0
+39,3,Goal,OPP 1,Goal Line,Run,QB Sneak,Touchdown,1,6
