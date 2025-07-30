@@ -42,6 +42,10 @@ collaboration_service.init_events()
 # Initialize reporting service
 init_reporting(db)
 
+# Initialize FootballViz API
+from footballviz_api import init_footballviz_api
+footballviz_api = init_footballviz_api(app, db, socketio)
+
 # Models
 class Team(db.Model):
     __tablename__ = 'teams'
@@ -86,8 +90,8 @@ class PlayData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     game_id = db.Column(db.Integer, db.ForeignKey('games.id'), nullable=False)
     play_id = db.Column(db.Integer, nullable=False)
-    down = db.Column(db.Integer, nullable=False)
-    distance = db.Column(db.Integer, nullable=False)
+    down = db.Column(db.Integer, nullable=True)  # Allow null for special teams
+    distance = db.Column(db.Integer, nullable=True)  # Allow null for special teams
     yard_line = db.Column(db.Integer, nullable=False)
     formation = db.Column(db.String(100), nullable=False)
     play_type = db.Column(db.String(50), nullable=False)
@@ -95,6 +99,7 @@ class PlayData(db.Model):
     result_of_play = db.Column(db.String(100), nullable=False)
     yards_gained = db.Column(db.Integer, default=0)
     points_scored = db.Column(db.Integer, default=0)
+    unit = db.Column(db.String(20), nullable=False)  # O, D, ST (offense, defense, special teams)
     
     # Additional optional columns for future expansion
     quarter = db.Column(db.Integer)
@@ -351,16 +356,27 @@ def upload_game():
             return jsonify({'message': 'CSV file is empty'}), 400
         
         # Validate required columns
-        required_columns = ['Play ID', 'Down', 'Distance', 'Yard Line', 'Formation', 'Play Type', 'Play', 'Result of Play']
+        required_columns = ['Play ID', 'Down', 'Distance', 'Yard Line', 'Formation', 'Play Type', 'Play Name', 'Result of Play', 'Unit']
         actual_columns = list(rows[0].keys())
         missing_columns = [col for col in required_columns if col not in actual_columns]
         if missing_columns:
             return jsonify({'message': f'Missing required columns: {", ".join(missing_columns)}'}), 400
         
         # Validate data types for numeric columns
-        numeric_columns = ['Play ID', 'Down', 'Distance', 'Yard Line']
+        numeric_columns = ['Play ID', 'Yard Line']
         for i, row in enumerate(rows):
-            for col in numeric_columns:
+            # Check unit type and validate accordingly
+            unit = str(row.get('Unit', '')).lower()
+            
+            # For special teams, skip down/distance validation
+            cols_to_validate = numeric_columns.copy()
+            if unit not in ['st', 'special teams', 'special']:
+                cols_to_validate.extend(['Down', 'Distance'])
+            
+            for col in cols_to_validate:
+                # Allow N/A for special teams down/distance
+                if unit in ['st', 'special teams', 'special'] and col in ['Down', 'Distance'] and str(row[col]).upper() == 'N/A':
+                    continue
                 try:
                     int(row[col])
                 except (ValueError, TypeError):
@@ -397,18 +413,24 @@ def upload_game():
             elif 'field goal' in result_text or 'fg' in result_text:
                 points_scored = 3
             
+            # Handle down/distance for special teams
+            unit = str(row['Unit']).upper()
+            down_val = None if str(row['Down']).upper() == 'N/A' else int(row['Down'])
+            distance_val = None if str(row['Distance']).upper() == 'N/A' else int(row['Distance'])
+            
             play_data = PlayData(
                 game_id=new_game.id,
                 play_id=int(row['Play ID']),
-                down=int(row['Down']),
-                distance=int(row['Distance']),
+                down=down_val,
+                distance=distance_val,
                 yard_line=int(row['Yard Line']),
                 formation=str(row['Formation']),
                 play_type=str(row['Play Type']),
-                play_name=str(row['Play']),
+                play_name=str(row['Play Name']),
                 result_of_play=str(row['Result of Play']),
                 yards_gained=yards_gained,
-                points_scored=points_scored
+                points_scored=points_scored,
+                unit=unit
             )
             db.session.add(play_data)
         
