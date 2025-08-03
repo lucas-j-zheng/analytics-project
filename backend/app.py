@@ -631,6 +631,485 @@ def get_game_analytics(game_id):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
+# Consultant Data Explorer Routes
+@app.route('/api/consultant/team/<int:team_id>/play-data', methods=['GET'])
+@jwt_required()
+def get_team_play_data(team_id):
+    """Get all play data for a team with game context"""
+    try:
+        current_user = get_current_user()
+        
+        # Verify consultant access
+        if current_user['type'] != 'consultant':
+            return jsonify({'message': 'Access denied'}), 403
+        
+        # Get all plays for the team with game information
+        plays_query = db.session.query(
+            PlayData.id,
+            PlayData.play_id,
+            PlayData.down,
+            PlayData.distance,
+            PlayData.yard_line,
+            PlayData.formation,
+            PlayData.play_type,
+            PlayData.play_name,
+            PlayData.result_of_play,
+            PlayData.yards_gained,
+            PlayData.points_scored,
+            PlayData.unit,
+            PlayData.quarter,
+            PlayData.time_remaining,
+            PlayData.game_id,
+            Game.week.label('game_week'),
+            Game.opponent.label('game_opponent')
+        ).join(Game).filter(Game.team_id == team_id).all()
+        
+        # Convert to list of dictionaries
+        plays_data = []
+        for play in plays_query:
+            plays_data.append({
+                'id': play.id,
+                'play_id': play.play_id,
+                'down': play.down,
+                'distance': play.distance,
+                'yard_line': play.yard_line,
+                'formation': play.formation,
+                'play_type': play.play_type,
+                'play_name': play.play_name,
+                'result_of_play': play.result_of_play,
+                'yards_gained': play.yards_gained,
+                'points_scored': play.points_scored,
+                'unit': play.unit,
+                'quarter': play.quarter,
+                'time_remaining': play.time_remaining,
+                'game_id': play.game_id,
+                'game_week': play.game_week,
+                'game_opponent': play.game_opponent
+            })
+        
+        return jsonify({
+            'plays': plays_data,
+            'total_plays': len(plays_data)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@app.route('/api/consultant/data/filter', methods=['POST'])
+@jwt_required()
+def filter_play_data():
+    """Apply filters to play data and return results"""
+    try:
+        current_user = get_current_user()
+        
+        # Verify consultant access
+        if current_user['type'] != 'consultant':
+            return jsonify({'message': 'Access denied'}), 403
+        
+        data = request.get_json()
+        team_id = data.get('team_id')
+        filters = data.get('filters', [])
+        
+        if not team_id:
+            return jsonify({'message': 'Team ID is required'}), 400
+        
+        # Start with base query
+        query = db.session.query(
+            PlayData.id,
+            PlayData.play_id,
+            PlayData.down,
+            PlayData.distance,
+            PlayData.yard_line,
+            PlayData.formation,
+            PlayData.play_type,
+            PlayData.play_name,
+            PlayData.result_of_play,
+            PlayData.yards_gained,
+            PlayData.points_scored,
+            PlayData.unit,
+            PlayData.quarter,
+            PlayData.time_remaining,
+            PlayData.game_id,
+            Game.week.label('game_week'),
+            Game.opponent.label('game_opponent')
+        ).join(Game).filter(Game.team_id == team_id)
+        
+        # Apply filters
+        for filter_condition in filters:
+            field = filter_condition.get('field')
+            operator = filter_condition.get('operator')
+            value = filter_condition.get('value')
+            
+            if not all([field, operator]):
+                continue
+                
+            # Map field names to database columns
+            field_mapping = {
+                'play_id': PlayData.play_id,
+                'down': PlayData.down,
+                'distance': PlayData.distance,
+                'yard_line': PlayData.yard_line,
+                'formation': PlayData.formation,
+                'play_type': PlayData.play_type,
+                'play_name': PlayData.play_name,
+                'result_of_play': PlayData.result_of_play,
+                'yards_gained': PlayData.yards_gained,
+                'points_scored': PlayData.points_scored,
+                'unit': PlayData.unit,
+                'quarter': PlayData.quarter,
+                'game_week': Game.week,
+                'game_opponent': Game.opponent
+            }
+            
+            if field not in field_mapping:
+                continue
+                
+            db_field = field_mapping[field]
+            
+            # Apply filter based on operator
+            if operator == 'equals':
+                query = query.filter(db_field == value)
+            elif operator == 'not_equals':
+                query = query.filter(db_field != value)
+            elif operator == 'greater_than':
+                query = query.filter(db_field > value)
+            elif operator == 'less_than':
+                query = query.filter(db_field < value)
+            elif operator == 'greater_equal':
+                query = query.filter(db_field >= value)
+            elif operator == 'less_equal':
+                query = query.filter(db_field <= value)
+            elif operator == 'contains':
+                query = query.filter(db_field.ilike(f'%{value}%'))
+            elif operator == 'in' and isinstance(value, list):
+                query = query.filter(db_field.in_(value))
+        
+        # Execute query
+        plays_result = query.all()
+        
+        # Convert to list of dictionaries
+        plays_data = []
+        for play in plays_result:
+            plays_data.append({
+                'id': play.id,
+                'play_id': play.play_id,
+                'down': play.down,
+                'distance': play.distance,
+                'yard_line': play.yard_line,
+                'formation': play.formation,
+                'play_type': play.play_type,
+                'play_name': play.play_name,
+                'result_of_play': play.result_of_play,
+                'yards_gained': play.yards_gained,
+                'points_scored': play.points_scored,
+                'unit': play.unit,
+                'quarter': play.quarter,
+                'time_remaining': play.time_remaining,
+                'game_id': play.game_id,
+                'game_week': play.game_week,
+                'game_opponent': play.game_opponent
+            })
+        
+        return jsonify({
+            'plays': plays_data,
+            'total_plays': len(plays_data),
+            'filters_applied': len(filters)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@app.route('/api/consultant/charts/statistical', methods=['POST'])
+@jwt_required()
+def generate_statistical_chart():
+    """Generate statistical analysis charts"""
+    try:
+        current_user = get_current_user()
+        
+        # Verify consultant access
+        if current_user['type'] != 'consultant':
+            return jsonify({'message': 'Access denied'}), 403
+        
+        data = request.get_json()
+        team_id = data.get('team_id')
+        chart_type = data.get('chart_type')
+        filters = data.get('filters', [])
+        chart_options = data.get('options', {})
+        
+        if not all([team_id, chart_type]):
+            return jsonify({'message': 'Team ID and chart type are required'}), 400
+        
+        # Get filtered play data
+        query = db.session.query(
+            PlayData.id,
+            PlayData.play_id,
+            PlayData.down,
+            PlayData.distance,
+            PlayData.yard_line,
+            PlayData.formation,
+            PlayData.play_type,
+            PlayData.play_name,
+            PlayData.result_of_play,
+            PlayData.yards_gained,
+            PlayData.points_scored,
+            PlayData.unit,
+            PlayData.quarter,
+            PlayData.time_remaining,
+            PlayData.game_id,
+            Game.week.label('game_week'),
+            Game.opponent.label('game_opponent')
+        ).join(Game).filter(Game.team_id == team_id)
+        
+        # Apply filters
+        for filter_condition in filters:
+            field = filter_condition.get('field')
+            operator = filter_condition.get('operator')
+            value = filter_condition.get('value')
+            
+            if not all([field, operator]):
+                continue
+                
+            # Map field names to database columns
+            field_mapping = {
+                'play_id': PlayData.play_id,
+                'down': PlayData.down,
+                'distance': PlayData.distance,
+                'yard_line': PlayData.yard_line,
+                'formation': PlayData.formation,
+                'play_type': PlayData.play_type,
+                'play_name': PlayData.play_name,
+                'result_of_play': PlayData.result_of_play,
+                'yards_gained': PlayData.yards_gained,
+                'points_scored': PlayData.points_scored,
+                'unit': PlayData.unit,
+                'quarter': PlayData.quarter,
+                'game_week': Game.week,
+                'game_opponent': Game.opponent
+            }
+            
+            if field not in field_mapping:
+                continue
+                
+            db_field = field_mapping[field]
+            
+            # Apply filter based on operator
+            if operator == 'equals':
+                query = query.filter(db_field == value)
+            elif operator == 'not_equals':
+                query = query.filter(db_field != value)
+            elif operator == 'greater_than':
+                query = query.filter(db_field > value)
+            elif operator == 'less_than':
+                query = query.filter(db_field < value)
+            elif operator == 'greater_equal':
+                query = query.filter(db_field >= value)
+            elif operator == 'less_equal':
+                query = query.filter(db_field <= value)
+            elif operator == 'contains':
+                query = query.filter(db_field.ilike(f'%{value}%'))
+            elif operator == 'in' and isinstance(value, list):
+                query = query.filter(db_field.in_(value))
+        
+        # Execute query
+        plays_result = query.all()
+        
+        # Convert to list of dictionaries
+        plays_data = []
+        for play in plays_result:
+            plays_data.append({
+                'id': play.id,
+                'play_id': play.play_id,
+                'down': play.down,
+                'distance': play.distance,
+                'yard_line': play.yard_line,
+                'formation': play.formation,
+                'play_type': play.play_type,
+                'play_name': play.play_name,
+                'result_of_play': play.result_of_play,
+                'yards_gained': play.yards_gained,
+                'points_scored': play.points_scored,
+                'unit': play.unit,
+                'quarter': play.quarter,
+                'time_remaining': play.time_remaining,
+                'game_id': play.game_id,
+                'game_week': play.game_week,
+                'game_opponent': play.game_opponent
+            })
+        
+        if not plays_data:
+            return jsonify({'message': 'No data matches the applied filters'}), 400
+        
+        # Generate statistical chart
+        from footballviz.charts.statistical import create_statistical_chart
+        
+        try:
+            chart_base64 = create_statistical_chart(
+                chart_type=chart_type,
+                plays_data=plays_data,
+                **chart_options
+            )
+            
+            return jsonify({
+                'chart_image': chart_base64,
+                'chart_type': chart_type,
+                'plays_analyzed': len(plays_data),
+                'filters_applied': len(filters)
+            }), 200
+            
+        except Exception as chart_error:
+            return jsonify({'message': f'Chart generation failed: {str(chart_error)}'}), 500
+        
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+@app.route('/api/consultant/charts/recommend', methods=['POST']) 
+@jwt_required()
+def recommend_charts():
+    """Recommend chart types based on data characteristics"""
+    try:
+        current_user = get_current_user()
+        
+        # Verify consultant access
+        if current_user['type'] != 'consultant':
+            return jsonify({'message': 'Access denied'}), 403
+        
+        data = request.get_json()
+        team_id = data.get('team_id')
+        filters = data.get('filters', [])
+        selected_plays = data.get('selected_plays', 0)
+        
+        if not team_id:
+            return jsonify({'message': 'Team ID is required'}), 400
+        
+        # Analyze data characteristics for recommendations
+        query = db.session.query(PlayData).join(Game).filter(Game.team_id == team_id)
+        
+        # Apply filters if any
+        for filter_condition in filters:
+            field = filter_condition.get('field')
+            operator = filter_condition.get('operator')
+            value = filter_condition.get('value')
+            
+            if not all([field, operator]):
+                continue
+                
+            field_mapping = {
+                'play_id': PlayData.play_id,
+                'down': PlayData.down,
+                'distance': PlayData.distance,
+                'yard_line': PlayData.yard_line,
+                'formation': PlayData.formation,
+                'play_type': PlayData.play_type,
+                'yards_gained': PlayData.yards_gained,
+                'points_scored': PlayData.points_scored,
+                'unit': PlayData.unit,
+                'quarter': PlayData.quarter
+            }
+            
+            if field in field_mapping:
+                db_field = field_mapping[field]
+                if operator == 'equals':
+                    query = query.filter(db_field == value)
+                elif operator == 'greater_than':
+                    query = query.filter(db_field > value)
+                elif operator == 'less_than':
+                    query = query.filter(db_field < value)
+                # Add other operators as needed
+        
+        plays = query.all()
+        
+        if not plays:
+            return jsonify({'recommendations': []}), 200
+        
+        # Generate recommendations based on data characteristics
+        recommendations = []
+        
+        # Always recommend distribution analysis
+        recommendations.append({
+            'chart_type': 'distribution',
+            'title': 'Yards Distribution Analysis',
+            'description': 'Analyze the distribution of yards gained with statistical insights',
+            'icon': '📊',
+            'priority': 1,
+            'reason': 'Shows data distribution patterns and outliers'
+        })
+        
+        # Check for multiple formations
+        formations = set(play.formation for play in plays if play.formation)
+        if len(formations) > 1:
+            recommendations.append({
+                'chart_type': 'formation_comparison',
+                'title': 'Formation Performance Analysis',
+                'description': f'Compare effectiveness across {len(formations)} different formations',
+                'icon': '⚡',
+                'priority': 2,
+                'reason': f'Multiple formations detected ({len(formations)})'
+            })
+        
+        # Check for situational diversity
+        downs = set(play.down for play in plays if play.down)
+        if len(downs) > 1:
+            recommendations.append({
+                'chart_type': 'situational',
+                'title': 'Situational Analysis',
+                'description': 'Analyze performance in different game situations',
+                'icon': '🎯',
+                'priority': 3,
+                'reason': 'Multiple down situations detected'
+            })
+        
+        # Check for field position data
+        has_yard_line = any(play.yard_line for play in plays)
+        if has_yard_line:
+            recommendations.append({
+                'chart_type': 'field_heatmap',
+                'title': 'Field Position Heatmap',
+                'description': 'Visualize play distribution across the field',
+                'icon': '🏈',
+                'priority': 4,
+                'reason': 'Field position data available'
+            })
+        
+        # Check for temporal data
+        has_play_sequence = any(play.play_id for play in plays)
+        if has_play_sequence and len(plays) > 10:
+            recommendations.append({
+                'chart_type': 'trends',
+                'title': 'Performance Trends',
+                'description': 'Track performance changes throughout the game',
+                'icon': '📈',
+                'priority': 5,
+                'reason': 'Sequential play data available'
+            })
+        
+        # Add correlation analysis for sufficient data
+        if len(plays) > 20:
+            recommendations.append({
+                'chart_type': 'correlation',
+                'title': 'Variable Correlation Matrix',
+                'description': 'Discover relationships between different metrics',
+                'icon': '🔗',
+                'priority': 6,
+                'reason': 'Sufficient data for correlation analysis'
+            })
+        
+        # Sort by priority
+        recommendations.sort(key=lambda x: x['priority'])
+        
+        return jsonify({
+            'recommendations': recommendations[:6],  # Limit to top 6
+            'data_summary': {
+                'total_plays': len(plays),
+                'formations': len(formations),
+                'avg_yards': sum(play.yards_gained for play in plays) / len(plays) if plays else 0,
+                'has_field_position': has_yard_line,
+                'has_sequence': has_play_sequence
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
 # Visualization and Highlighting Routes
 @app.route('/api/visualizations', methods=['POST'])
 @jwt_required()
